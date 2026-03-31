@@ -18,6 +18,6 @@ func main() {
 	)
 	defer cancel()
 
-	app := internal.NewApp(os.Stdout, os.Args)
+	app := internal.NewApp(os.Stdin, os.Stdout, os.Args)
 	app.Run(ctx)
 }

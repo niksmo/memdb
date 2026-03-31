@@ -12,7 +12,7 @@ func TestNewApp(t *testing.T) {
 
 	require.NotPanics(t, func() {
 		var buf bytes.Buffer
-		app := NewApp(&buf, []string{"log", "warn"})
+		app := NewApp(&buf, &buf, []string{"log", "warn"})
 		require.NotNil(t, app)
 	})
 }
