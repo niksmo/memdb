@@ -8,6 +8,7 @@ type Config struct {
 
 func FromFlags(osArgs []string) Config {
 	flagSet := flag.NewFlagSet("memdb", flag.ExitOnError)
+
 	logLevel := flagSet.String("log", "info", "debug | info | warn | error")
 
 	err := flagSet.Parse(osArgs[1:])

@@ -7,6 +7,9 @@ import (
 	"log/slog"
 
 	"github.com/niksmo/memdb/internal/config"
+	"github.com/niksmo/memdb/internal/core"
+	"github.com/niksmo/memdb/internal/core/compute"
+	"github.com/niksmo/memdb/internal/core/compute/parser"
 	"github.com/niksmo/memdb/internal/ports"
 	"github.com/niksmo/memdb/pkg/logger"
 )
@@ -40,7 +43,7 @@ func (app *App) Run(ctx context.Context) {
 	<-ctx.Done()
 
 	fmt.Println()
-	fmt.Println("✅closed successfully")
+	fmt.Println("❎ closed successfully")
 }
 
 func (app *App) initLogger(w io.Writer, level string) {
@@ -48,5 +51,8 @@ func (app *App) initLogger(w io.Writer, level string) {
 }
 
 func (app *App) initHandler(r io.Reader, w io.Writer) {
-	app.handler = ports.NewStdinHandler(app.logger, r, w)
+	p := parser.New()
+	c := compute.New(p)
+	e := core.NewPipeline(c)
+	app.handler = ports.NewStdinHandler(app.logger, r, w, e)
 }
