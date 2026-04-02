@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 )
 
 var (
@@ -24,11 +25,11 @@ func NewRequest(cmd Command, key string, value string) (Request, error) {
 	switch cmd {
 	case CommandSet:
 		if value == "" {
-			return Request{}, ErrInvalidValue
+			return Request{}, fmt.Errorf("value is empty: %w", ErrInvalidValue)
 		}
 	case CommandGet, CommandDel:
 		if value != "" {
-			return Request{}, ErrInvalidValue
+			return Request{}, fmt.Errorf("value must be empty: %w", ErrInvalidValue)
 		}
 	default:
 		return Request{}, ErrInvalidCommand
