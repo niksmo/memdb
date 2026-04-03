@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"strings"
 )
 
 type Executer interface {
-	Exec(ctx context.Context, stmt []string) (string, error)
+	Exec(ctx context.Context, stmt []byte) ([]byte, error)
 }
 
 type StdinHandler struct {
@@ -34,13 +33,9 @@ func (h *StdinHandler) Run(ctx context.Context) error {
 	scanner := bufio.NewScanner(h.reader)
 
 	h.writePrompt()
-	for scanner.Scan() {
-		stmt := strings.Fields(scanner.Text())
 
-		if err := h.validate(stmt); err != nil {
-			h.writeError(err)
-			continue
-		}
+	for scanner.Scan() {
+		stmt := scanner.Bytes()
 
 		res, err := h.executer.Exec(ctx, stmt)
 		if err != nil {
@@ -75,7 +70,7 @@ func (h *StdinHandler) writeError(err error) {
 	h.writePrompt()
 }
 
-func (h *StdinHandler) writeSuccess(res string) {
+func (h *StdinHandler) writeSuccess(res []byte) {
 	_, _ = fmt.Fprintf(h.writer, "✅ %s\n", res)
 	h.writePrompt()
 }

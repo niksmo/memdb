@@ -1,6 +1,9 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Command uint8
 
@@ -12,7 +15,7 @@ const (
 )
 
 func ParseCommand(v string) (Command, error) {
-	switch v {
+	switch strings.ToUpper(v) {
 	case "SET":
 		return CommandSet, nil
 	case "GET":

@@ -7,6 +7,10 @@ type Config struct {
 }
 
 func FromFlags(osArgs []string) Config {
+	if len(osArgs) == 0 {
+		return defaultConfig()
+	}
+
 	flagSet := flag.NewFlagSet("memdb", flag.ExitOnError)
 
 	logLevel := flagSet.String("log", "info", "debug | info | warn | error")
@@ -17,4 +21,8 @@ func FromFlags(osArgs []string) Config {
 	}
 
 	return Config{LogLevel: *logLevel}
+}
+
+func defaultConfig() Config {
+	return Config{LogLevel: "info"}
 }

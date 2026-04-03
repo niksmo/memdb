@@ -2,13 +2,13 @@ package models
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
 	ErrInvalidCommand = errors.New("invalid command")
 	ErrEmptyKey       = errors.New("empty key")
-	ErrInvalidValue   = errors.New("invalid value")
+	ErrEmptyValue     = errors.New("value is empty")
+	ErrMustEmptyValue = errors.New("value must be empty")
 )
 
 type Request struct {
@@ -25,11 +25,11 @@ func NewRequest(cmd Command, key string, value string) (Request, error) {
 	switch cmd {
 	case CommandSet:
 		if value == "" {
-			return Request{}, fmt.Errorf("value is empty: %w", ErrInvalidValue)
+			return Request{}, ErrEmptyValue
 		}
 	case CommandGet, CommandDel:
 		if value != "" {
-			return Request{}, fmt.Errorf("value must be empty: %w", ErrInvalidValue)
+			return Request{}, ErrMustEmptyValue
 		}
 	default:
 		return Request{}, ErrInvalidCommand
@@ -54,8 +54,4 @@ func (r Request) Key() string {
 
 func (r Request) Value() string {
 	return r.value
-}
-
-func (r Request) Valid() bool {
-	return r != Request{}
 }

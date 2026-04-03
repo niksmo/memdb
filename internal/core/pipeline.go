@@ -7,7 +7,7 @@ import (
 )
 
 type Compute interface {
-	Do(ctx context.Context, stmt []string) (models.Request, error)
+	Do(ctx context.Context, stmt []byte) (models.Request, error)
 }
 
 type Pipeline struct {
@@ -18,12 +18,12 @@ func NewPipeline(c Compute) *Pipeline {
 	return &Pipeline{c}
 }
 
-func (p *Pipeline) Exec(ctx context.Context, stmt []string) (string, error) {
+func (p *Pipeline) Exec(ctx context.Context, stmt []byte) ([]byte, error) {
 	q, err := p.c.Do(ctx, stmt)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	_ = q
 
-	return "", err
+	return nil, err
 }
