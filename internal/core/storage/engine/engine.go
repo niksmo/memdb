@@ -3,7 +3,7 @@ package engine
 import "errors"
 
 var (
-	ErrKyeNotFound = errors.New("not found")
+	ErrKeyNotFound = errors.New("not found")
 )
 
 type Engine struct {
@@ -23,14 +23,14 @@ func (e *Engine) Set(key string, value string) {
 func (e *Engine) Get(key string) (string, error) {
 	value, ok := e.data[key]
 	if !ok {
-		return "", ErrKyeNotFound
+		return "", ErrKeyNotFound
 	}
 	return value, nil
 }
 
 func (e *Engine) Del(key string) error {
 	if _, ok := e.data[key]; !ok {
-		return ErrKyeNotFound
+		return ErrKeyNotFound
 	}
 
 	delete(e.data, key)

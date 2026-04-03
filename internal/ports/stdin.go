@@ -47,7 +47,7 @@ func (h *StdinHandler) Run(ctx context.Context) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		h.log.Error("invalid input", "error", err)
+		h.log.Error("failed to scan input", "error", err)
 	}
 
 	return nil
