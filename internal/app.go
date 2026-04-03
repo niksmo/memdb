@@ -10,6 +10,8 @@ import (
 	"github.com/niksmo/memdb/internal/core"
 	"github.com/niksmo/memdb/internal/core/compute"
 	"github.com/niksmo/memdb/internal/core/compute/parser"
+	"github.com/niksmo/memdb/internal/core/storage"
+	"github.com/niksmo/memdb/internal/core/storage/engine"
 	"github.com/niksmo/memdb/internal/ports"
 	"github.com/niksmo/memdb/pkg/logger"
 )
@@ -51,8 +53,8 @@ func (app *App) initLogger(w io.Writer, level string) {
 }
 
 func (app *App) initHandler(r io.Reader, w io.Writer) {
-	p := parser.New()
-	c := compute.New(p)
-	e := core.NewPipeline(c)
+	c := compute.New(parser.New())
+	s := storage.New(engine.New())
+	e := core.NewPipeline(c, s)
 	app.handler = ports.NewStdinHandler(app.logger, r, w, e)
 }
