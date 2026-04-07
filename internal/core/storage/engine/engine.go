@@ -28,12 +28,8 @@ func (e *Engine) Get(key string) (string, error) {
 	return value, nil
 }
 
-func (e *Engine) Del(key string) error {
-	if _, ok := e.data[key]; !ok {
-		return ErrKeyNotFound
+func (e *Engine) Del(key string) {
+	if _, ok := e.data[key]; ok {
+		delete(e.data, key)
 	}
-
-	delete(e.data, key)
-
-	return nil
 }

@@ -3,7 +3,6 @@ package ports
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -50,14 +49,6 @@ func (h *StdinHandler) Run(ctx context.Context) error {
 		h.log.Error("failed to scan input", "error", err)
 	}
 
-	return nil
-}
-
-func (h *StdinHandler) validate(stmt []string) error {
-	nArgs := len(stmt)
-	if !(nArgs == 2 || nArgs == 3) {
-		return errors.New("invalid statement")
-	}
 	return nil
 }
 

@@ -1,13 +1,23 @@
 package parser
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"fmt"
-	"unicode/utf8"
+	"strings"
 
 	"github.com/niksmo/memdb/internal/core/models"
+)
+
+const (
+	setCmdArgsLen = 2
+	getCmdArgsLen = 1
+	delCmdArgsLen = 1
+
+	minArgs = 2
+	maxArgs = 3
+
+	keyIdx   = 0
+	valueIdx = 1
 )
 
 type Parser struct{}
@@ -16,67 +26,69 @@ func New() *Parser {
 	return &Parser{}
 }
 
-func (p *Parser) Parse(_ context.Context, stmt []byte) (models.Request, error) {
-	if err := p.validateStmt(stmt); err != nil {
-		return models.Request{}, err
-	}
-
-	args := bytes.Fields(stmt)
-
-	if err := p.validateArgs(args); err != nil {
-		return models.Request{}, err
-	}
-
-	return p.parseRequest(args)
-}
-
-func (p *Parser) validateStmt(stmt []byte) error {
+func (p *Parser) Parse(stmt []byte) (models.Request, error) {
 	if len(stmt) == 0 {
-		return errors.New("statement is empty")
+		return models.Request{}, errors.New("statement is empty")
 	}
 
-	if !utf8.Valid(stmt) {
-		return errors.New("statement should be the valid encoded string")
-	}
+	args := strings.Fields(string(stmt))
 
-	return nil
-}
-
-func (p *Parser) validateArgs(args [][]byte) error {
 	n := len(args)
+	if n < minArgs || n > maxArgs {
+		return models.Request{}, errors.New("invalid number of statement arguments")
+	}
 
-	if !(n == 2 || n == 3) {
-		return errors.New("invalid number of statement arguments")
+	cmd, err := models.ParseCommand(args[0])
+	if err != nil {
+		return models.Request{}, fmt.Errorf("parse command: %w", err)
+	}
+
+	cmdArgs := args[1:]
+
+	if err = p.validate(cmd, cmdArgs); err != nil {
+		return models.Request{}, err
+	}
+
+	return p.buildRequest(cmd, cmdArgs)
+}
+
+func (p *Parser) validate(cmd models.Command, cmdArgs []string) error {
+	const msgFormat = "invalid argument count, expected %d got %d"
+
+	n := len(cmdArgs)
+	switch cmd {
+	case models.CommandSet:
+		if n != setCmdArgsLen {
+			return fmt.Errorf(msgFormat, setCmdArgsLen, n)
+		}
+	case models.CommandGet:
+		if n != getCmdArgsLen {
+			return fmt.Errorf(msgFormat, getCmdArgsLen, n)
+		}
+	case models.CommandDel:
+		if n != delCmdArgsLen {
+			return fmt.Errorf(msgFormat, delCmdArgsLen, n)
+		}
+	default:
+		return errors.New("unexpected command")
 	}
 
 	return nil
 }
 
-func (p *Parser) isValue(args [][]byte) bool {
-	return len(args) == 3
-}
+func (p *Parser) buildRequest(cmd models.Command, cmdArgs []string) (models.Request, error) {
+	key := cmdArgs[keyIdx]
 
-func (p *Parser) parseRequest(args [][]byte) (models.Request, error) {
-	var (
-		cmd        models.Command
-		key, value string
-	)
-
-	cmd, err := models.ParseCommand(string(args[0]))
-	if err != nil {
-		return models.Request{}, errors.New("invalid statement command")
+	var value string
+	if cmd == models.CommandSet {
+		value = cmdArgs[valueIdx]
 	}
 
-	key = string(args[1])
-
-	if p.isValue(args) {
-		value = string(args[2])
+	req := models.Request{
+		Cmd:   cmd,
+		Key:   key,
+		Value: value,
 	}
 
-	req, err := models.NewRequest(cmd, key, value)
-	if err != nil {
-		return models.Request{}, fmt.Errorf("invalid statement: %w", err)
-	}
-
-	return req, err
+	return req, nil
 }

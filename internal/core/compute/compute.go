@@ -7,7 +7,7 @@ import (
 )
 
 type Parser interface {
-	Parse(ctx context.Context, stmt []byte) (models.Request, error)
+	Parse(stmt []byte) (models.Request, error)
 }
 
 type Compute struct {
@@ -23,5 +23,5 @@ func (c *Compute) Do(ctx context.Context, stmt []byte) (models.Request, error) {
 		return models.Request{}, err
 	}
 
-	return c.p.Parse(ctx, stmt)
+	return c.p.Parse(stmt)
 }

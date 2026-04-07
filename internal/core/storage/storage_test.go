@@ -12,14 +12,14 @@ import (
 type mockEngine struct {
 	setFn func(key, val string)
 	getFn func(key string) (string, error)
-	delFn func(key string) error
+	delFn func(key string)
 }
 
 func (m *mockEngine) Set(key, val string) { m.setFn(key, val) }
 
 func (m *mockEngine) Get(key string) (string, error) { return m.getFn(key) }
 
-func (m *mockEngine) Del(key string) error { return m.delFn(key) }
+func (m *mockEngine) Del(key string) { m.delFn(key) }
 
 func TestStorage_Process_Set(t *testing.T) {
 	t.Parallel()
@@ -28,7 +28,11 @@ func TestStorage_Process_Set(t *testing.T) {
 		setFn: func(key, val string) {},
 	}
 	s := New(e)
-	req, _ := models.NewRequest(models.CommandSet, "k1", "v1")
+	req := models.Request{
+		Cmd:   models.CommandSet,
+		Key:   "k1",
+		Value: "v1",
+	}
 
 	resp, err := s.Process(context.Background(), req)
 	require.NoError(t, err)
@@ -48,7 +52,11 @@ func TestStorage_Process_Get(t *testing.T) {
 	}
 
 	s := New(e)
-	req, _ := models.NewRequest(models.CommandGet, "k1", "")
+	req := models.Request{
+		Cmd:   models.CommandGet,
+		Key:   "k1",
+		Value: "",
+	}
 
 	resp, err := s.Process(context.Background(), req)
 	require.NoError(t, err)
@@ -66,7 +74,10 @@ func TestStorage_Process_Get_NotFound(t *testing.T) {
 
 	s := New(e)
 
-	req, _ := models.NewRequest(models.CommandGet, "missing", "")
+	req := models.Request{
+		Cmd: models.CommandGet,
+		Key: "missing",
+	}
 
 	_, err := s.Process(context.Background(), req)
 	require.Error(t, err)
@@ -77,14 +88,15 @@ func TestStorage_Process_Del(t *testing.T) {
 	t.Parallel()
 
 	e := &mockEngine{
-		delFn: func(key string) error {
-			return nil
-		},
+		delFn: func(key string) {},
 	}
 
 	s := New(e)
 
-	req, _ := models.NewRequest(models.CommandDel, "k1", "")
+	req := models.Request{
+		Cmd: models.CommandDel,
+		Key: "k1",
+	}
 
 	resp, err := s.Process(context.Background(), req)
 	require.NoError(t, err)
@@ -95,17 +107,17 @@ func TestStorage_Process_Del_NotFound(t *testing.T) {
 	t.Parallel()
 
 	e := &mockEngine{
-		delFn: func(key string) error {
-			return engine.ErrKeyNotFound
-		},
+		delFn: func(key string) {},
 	}
 
 	s := New(e)
 
-	req, _ := models.NewRequest(models.CommandDel, "missing", "")
+	req := models.Request{
+		Cmd: models.CommandDel,
+		Key: "missing",
+	}
 	_, err := s.Process(context.Background(), req)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "not found")
+	require.NoError(t, err)
 }
 
 func TestStorage_Process_UnknownCommand(t *testing.T) {
@@ -118,7 +130,7 @@ func TestStorage_Process_UnknownCommand(t *testing.T) {
 	req := models.Request{}
 
 	_, err := s.Process(context.Background(), req)
-	require.ErrorIs(t, err, ErrUnknownCommand)
+	require.Error(t, err)
 }
 
 func TestStorage_Process_CtxCanceled(t *testing.T) {

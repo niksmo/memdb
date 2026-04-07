@@ -48,10 +48,9 @@ func TestEngine_Del_Success(t *testing.T) {
 
 	e.Set("key1", "value1")
 
-	err := e.Del("key1")
-	require.NoError(t, err)
+	e.Del("key1")
 
-	_, err = e.Get("key1")
+	_, err := e.Get("key1")
 	require.ErrorIs(t, err, ErrKeyNotFound)
 }
 
@@ -60,9 +59,9 @@ func TestEngine_Del_NotFound(t *testing.T) {
 
 	e := New()
 
-	err := e.Del("missing")
-
-	require.ErrorIs(t, err, ErrKeyNotFound)
+	require.NotPanics(t, func() {
+		e.Del("missing")
+	})
 }
 
 func TestEngine_StateIsolation(t *testing.T) {
@@ -73,8 +72,7 @@ func TestEngine_StateIsolation(t *testing.T) {
 	e.Set("k1", "v1")
 	e.Set("k2", "v2")
 
-	err := e.Del("k1")
-	require.NoError(t, err)
+	e.Del("k1")
 
 	val, err := e.Get("k2")
 	require.NoError(t, err)

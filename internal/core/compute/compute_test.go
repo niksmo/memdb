@@ -11,17 +11,15 @@ import (
 )
 
 type parserMock struct {
-	parseFn func(ctx context.Context, stmt []byte) (models.Request, error)
+	parseFn func(stmt []byte) (models.Request, error)
 
 	called bool
-	ctx    context.Context
 }
 
-func (m *parserMock) Parse(ctx context.Context, stmt []byte) (models.Request, error) {
+func (m *parserMock) Parse(stmt []byte) (models.Request, error) {
 	m.called = true
-	m.ctx = ctx
 
-	return m.parseFn(ctx, stmt)
+	return m.parseFn(stmt)
 }
 
 func TestCompute_Do_ContextCanceled(t *testing.T) {
@@ -45,7 +43,7 @@ func TestCompute_Do_ParserError(t *testing.T) {
 	t.Parallel()
 
 	mock := &parserMock{
-		parseFn: func(ctx context.Context, stmt []byte) (models.Request, error) {
+		parseFn: func(stmt []byte) (models.Request, error) {
 			return models.Request{}, assert.AnError
 		},
 	}
@@ -60,10 +58,14 @@ func TestCompute_Do_ParserError(t *testing.T) {
 }
 
 func TestCompute_Do_Success(t *testing.T) {
-	expected, _ := models.NewRequest(models.CommandGet, "key", "value")
+	expected := models.Request{
+		Cmd:   models.CommandGet,
+		Key:   "key",
+		Value: "value",
+	}
 
 	mock := &parserMock{
-		parseFn: func(ctx context.Context, stmt []byte) (models.Request, error) {
+		parseFn: func(stmt []byte) (models.Request, error) {
 			return expected, nil
 		},
 	}

@@ -1,7 +1,6 @@
 package parser_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/niksmo/memdb/internal/core/compute/parser"
@@ -15,22 +14,9 @@ func TestParser_Parse_EmptyStatement(t *testing.T) {
 
 	p := parser.New()
 
-	_, err := p.Parse(context.Background(), []byte(""))
+	_, err := p.Parse([]byte(""))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "statement is empty")
-}
-
-func TestParser_Parse_InvalidUTF8(t *testing.T) {
-	t.Parallel()
-
-	p := parser.New()
-
-	// invalid UTF-8 byte sequence
-	stmt := []byte{0xff, 0xfe, 0xfd}
-
-	_, err := p.Parse(context.Background(), stmt)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "statement should be the valid encoded string")
 }
 
 func TestParser_Parse_InvalidArgsCount(t *testing.T) {
@@ -55,7 +41,7 @@ func TestParser_Parse_InvalidArgsCount(t *testing.T) {
 			t.Parallel()
 			p := parser.New()
 
-			_, err := p.Parse(context.Background(), tt.stmt)
+			_, err := p.Parse(tt.stmt)
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "invalid number of statement arguments")
 
@@ -69,9 +55,9 @@ func TestParser_Parse_InvalidCommand(t *testing.T) {
 
 	p := parser.New()
 
-	_, err := p.Parse(context.Background(), []byte("UNKNOWN key"))
+	_, err := p.Parse([]byte("UNKNOWN key"))
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid statement command")
+	require.Contains(t, err.Error(), "parse command:")
 }
 
 func TestParser_Parse_InvalidRequestFromModel(t *testing.T) {
@@ -79,11 +65,9 @@ func TestParser_Parse_InvalidRequestFromModel(t *testing.T) {
 
 	p := parser.New()
 
-	// assuming models.NewRequest will fail for invalid combination
-	// adjust depending on your domain rules
-	_, err := p.Parse(context.Background(), []byte("GET key value"))
+	_, err := p.Parse([]byte("GET key value"))
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid statement:")
+	require.Contains(t, err.Error(), "invalid argument count")
 }
 
 func TestParser_Parse_SetCommand_Success(t *testing.T) {
@@ -91,12 +75,12 @@ func TestParser_Parse_SetCommand_Success(t *testing.T) {
 
 	p := parser.New()
 
-	req, err := p.Parse(context.Background(), []byte("SET myKey myValue"))
+	req, err := p.Parse([]byte("SET myKey myValue"))
 
 	require.NoError(t, err)
-	require.Equal(t, models.CommandSet, req.Cmd())
-	require.Equal(t, "myKey", req.Key())
-	require.Equal(t, "myValue", req.Value())
+	require.Equal(t, models.CommandSet, req.Cmd)
+	require.Equal(t, "myKey", req.Key)
+	require.Equal(t, "myValue", req.Value)
 }
 
 func TestParser_Parse_GetCommand_Success(t *testing.T) {
@@ -104,13 +88,13 @@ func TestParser_Parse_GetCommand_Success(t *testing.T) {
 
 	p := parser.New()
 
-	req, err := p.Parse(context.Background(), []byte("GET myKey"))
+	req, err := p.Parse([]byte("GET myKey"))
 
 	require.NoError(t, err)
 
-	require.Equal(t, models.CommandGet, req.Cmd())
-	require.Equal(t, "myKey", req.Key())
-	require.Equal(t, "", req.Value())
+	require.Equal(t, models.CommandGet, req.Cmd)
+	require.Equal(t, "myKey", req.Key)
+	require.Equal(t, "", req.Value)
 }
 
 func TestParser_Parse_DelCommand_Success(t *testing.T) {
@@ -118,11 +102,11 @@ func TestParser_Parse_DelCommand_Success(t *testing.T) {
 
 	p := parser.New()
 
-	req, err := p.Parse(context.Background(), []byte("DEL myKey"))
+	req, err := p.Parse([]byte("DEL myKey"))
 
 	require.NoError(t, err)
 
-	require.Equal(t, models.CommandDel, req.Cmd())
-	require.Equal(t, "myKey", req.Key())
-	require.Equal(t, "", req.Value())
+	require.Equal(t, models.CommandDel, req.Cmd)
+	require.Equal(t, "myKey", req.Key)
+	require.Equal(t, "", req.Value)
 }

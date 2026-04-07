@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/niksmo/memdb/internal/core/models"
-	"github.com/niksmo/memdb/internal/core/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +29,11 @@ func (m *mockStorage) Process(ctx context.Context, req models.Request) ([]byte, 
 func TestPipeline_Exec_Success(t *testing.T) {
 	t.Parallel()
 
-	req, _ := models.NewRequest(models.CommandSet, "k1", "v1")
+	req := models.Request{
+		Cmd:   models.CommandSet,
+		Key:   "k1",
+		Value: "v1",
+	}
 
 	c := &mockCompute{
 		doFn: func(ctx context.Context, stmt []byte) (models.Request, error) {
@@ -69,7 +73,11 @@ func TestPipeline_Exec_ComputeError(t *testing.T) {
 func TestPipeline_Exec_StorageError(t *testing.T) {
 	t.Parallel()
 
-	req, _ := models.NewRequest(models.CommandSet, "k1", "v1")
+	req := models.Request{
+		Cmd:   models.CommandSet,
+		Key:   "k1",
+		Value: "v1",
+	}
 
 	storageErr := errors.New("storage failed")
 
@@ -99,11 +107,11 @@ func TestPipeline_Exec_StorageUnknownCommand(t *testing.T) {
 	}
 	s := &mockStorage{
 		processFn: func(ctx context.Context, r models.Request) ([]byte, error) {
-			return nil, storage.ErrUnknownCommand
+			return nil, assert.AnError
 		},
 	}
 
 	p := NewPipeline(c, s)
 	_, err := p.Exec(context.Background(), []byte("FOO k1"))
-	require.ErrorIs(t, err, ErrInternal)
+	require.ErrorIs(t, err, assert.AnError)
 }
