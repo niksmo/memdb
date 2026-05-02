@@ -14,7 +14,7 @@ func TestNewText(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		log := NewText(&buf, "warn")
+		log := New(&buf, "warn")
 
 		log.Warn("test message", "key", "value")
 
@@ -26,14 +26,16 @@ func TestNewText(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		log := NewText(&buf, "invalid level")
+		log := New(&buf, "invalid level")
+		output, _ := buf.ReadString('\n')
+		require.Contains(t, output, "invalid log level")
 
 		log.Debug("debug message", "key", "value")
-		output := buf.String()
+		output, _ = buf.ReadString('\n')
 		require.Zero(t, output)
 
 		log.Info("info message", "key", "value")
-		output = buf.String()
+		output, _ = buf.ReadString('\n')
 		require.Contains(t, output, "info message")
 	})
 }
