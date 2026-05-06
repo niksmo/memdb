@@ -6,24 +6,28 @@ import (
 	"log/slog"
 )
 
-func NewText(w io.Writer, level string) *slog.Logger {
+func New(wr io.Writer, level string) *slog.Logger {
+	logLevel := parseStringLevel(wr, level)
+
 	logHandlerOpts := &slog.HandlerOptions{
-		Level:       parseStringLevel(level),
+		Level:       logLevel,
 		ReplaceAttr: convertTimeInUnixMicro,
 	}
 
-	return slog.New(slog.NewTextHandler(w, logHandlerOpts))
+	handler := slog.NewTextHandler(wr, logHandlerOpts)
+	l := slog.New(handler)
+
+	return l
 }
 
-func parseStringLevel(level string) slog.Level {
+func parseStringLevel(wr io.Writer, level string) slog.Level {
 	var logLevel slog.Level
 
 	err := logLevel.UnmarshalText([]byte(level))
 	if err != nil {
-		fmt.Printf("invalid log level `%s`, expected: debug | info | warn | error\n", level)
+		fmt.Fprintf(wr, "invalid log level `%s`, expected: debug | info | warn | error\n", level)
 		logLevel = slog.LevelInfo
 	}
-	fmt.Printf("Log level is set to %s\n", logLevel)
 
 	return logLevel
 }

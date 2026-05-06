@@ -1,0 +1,13 @@
+# 1) Rename to memdb.conf.yml
+# 2) Change values to preferred settings.
+
+engine:
+  type: "in_memory" # No impact on application behavior.
+network:
+  address: "127.0.0.1:8000"
+  max_connections: 100
+  max_message_size: 4096
+  idle_timeout: 5m
+logging:
+  level: "info"
+  output: "" # Use a blank value for STDOUT, or provide the absolute file path.
