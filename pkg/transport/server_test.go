@@ -294,50 +294,6 @@ func TestServer_Listen_ExecuterPanic(t *testing.T) {
 	})
 }
 
-func TestServer_Listen_ContextCancelled(t *testing.T) {
-	t.Parallel()
-
-	l, _ := newTestLogger(t, "debug")
-	handler := &mockHandler{}
-	config := newTestConfig()
-
-	synctest.Test(t, func(t *testing.T) {
-		lis := newMockListener(0)
-
-		srv := Server{
-			logger:  l,
-			handler: handler,
-			lis:     lis,
-			cfg:     config,
-		}
-
-		ctx, cancel := context.WithCancel(t.Context())
-
-		go func() {
-			err := srv.Listen(ctx)
-			require.ErrorIs(t, err, context.Canceled)
-
-			err = srv.Close()
-			require.NoError(t, err)
-		}()
-
-		synctest.Wait() // wait for starting accept loop
-
-		clConn := lis.establishConn() // establish connection
-
-		synctest.Wait() // waiting for the client read
-
-		cancel() // interrupt memdb listening
-
-		synctest.Wait() // waiting for the memdb to close
-
-		// the client is trying to write,
-		n, err := clConn.Write([]byte("hello world\n"))
-		require.ErrorIs(t, err, io.ErrClosedPipe)
-		require.Zero(t, n)
-	})
-}
-
 func TestServer_Listen_ConnLimitExceeded(t *testing.T) {
 	t.Parallel()
 

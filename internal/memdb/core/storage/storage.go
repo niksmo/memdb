@@ -4,49 +4,123 @@ import (
 	"context"
 	"errors"
 
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 )
 
-var okResponse = []byte("OK")
-
 type Engine interface {
-	Set(key string, value string)
-	Get(key string) (value string, err error)
+	Set(key string, payload string)
+	Get(key string) (payload string, err error)
 	Del(key string)
 }
 
+type WAL interface {
+	Run() error
+	WriteLog(ctx context.Context, opCode domain.OpCode, key, payload string) error
+	LoadAll(ctx context.Context, cb func(opCode domain.OpCode, key, payload string)) error
+	Close() error
+}
+
+var okResponse = []byte("OK")
+
+var walCommands = map[domain.OpCode]struct{}{
+	domain.OpSet: {},
+	domain.OpDel: {},
+}
+
+type Options struct {
+	Engine     Engine
+	WAL        WAL
+	WALEnabled bool
+}
+
 type Storage struct {
-	engine Engine
+	engine     Engine
+	wal        WAL
+	walEnabled bool
 }
 
-func New(e Engine) *Storage {
-	return &Storage{e}
+func New(o Options) *Storage {
+	return &Storage{
+		engine:     o.Engine,
+		wal:        o.WAL,
+		walEnabled: o.WALEnabled,
+	}
 }
 
-func (s *Storage) Process(ctx context.Context, req models.Request) ([]byte, error) {
-	if err := ctx.Err(); err != nil {
+func (s *Storage) Run() error {
+	if !s.walEnabled {
+		return nil
+	}
+
+	return s.wal.Run()
+}
+
+func (s *Storage) Process(ctx context.Context, operation domain.Operation) ([]byte, error) {
+	var (
+		opCode  = operation.Code
+		key     = operation.Key
+		payload = operation.Payload
+	)
+
+	if err := s.writeLog(ctx, opCode, key, payload); err != nil {
 		return nil, err
 	}
 
-	cmd := req.Cmd
-	key := req.Key
-	switch cmd {
-	case models.CommandSet:
-		s.engine.Set(key, req.Value)
+	switch opCode {
+	case domain.OpSet:
+		s.engine.Set(key, payload)
 		return okResponse, nil
 
-	case models.CommandGet:
-		v, err := s.engine.Get(key)
+	case domain.OpGet:
+		data, err := s.engine.Get(key)
 		if err != nil {
 			return nil, err
 		}
-		return []byte(v), nil
+		return []byte(data), nil
 
-	case models.CommandDel:
+	case domain.OpDel:
 		s.engine.Del(key)
 		return okResponse, nil
 
 	default:
-		return nil, errors.New("unexpected command")
+		return nil, errors.New("unexpected operation")
 	}
+}
+
+func (s *Storage) Load(ctx context.Context) error {
+	if !s.walEnabled {
+		return nil
+	}
+
+	return s.wal.LoadAll(ctx, func(opCode domain.OpCode, key, payload string) {
+		if opCode == domain.OpSet {
+			s.engine.Set(key, payload)
+			return
+		}
+
+		if opCode == domain.OpDel {
+			s.engine.Del(key)
+			return
+		}
+	})
+}
+
+func (s *Storage) Close() error {
+	if !s.walEnabled {
+		return nil
+	}
+
+	return s.wal.Close()
+}
+
+func (s *Storage) writeLog(ctx context.Context, opCode domain.OpCode, key, payload string) error {
+	if !s.walEnabled {
+		return nil
+	}
+
+	if _, ok := walCommands[opCode]; !ok {
+		return nil
+	}
+
+	return s.wal.WriteLog(ctx, opCode, key, payload)
 }

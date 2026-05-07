@@ -1,11 +1,11 @@
-package models_test
+package domain_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 )
 
 func TestParseCommand_Regular(t *testing.T) {
@@ -14,29 +14,29 @@ func TestParseCommand_Regular(t *testing.T) {
 	tests := []struct {
 		name     string
 		arg      string
-		expected models.Command
+		expected domain.OpCode
 	}{
 		{
 			name:     "SET command",
 			arg:      "SET",
-			expected: models.CommandSet,
+			expected: domain.OpSet,
 		},
 		{
 			name:     "GET command",
 			arg:      "GET",
-			expected: models.CommandGet,
+			expected: domain.OpGet,
 		},
 		{
 			name:     "DEL command",
 			arg:      "DEL",
-			expected: models.CommandDel,
+			expected: domain.OpDel,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			cmd, err := models.ParseCommand(tt.arg)
+			cmd, err := domain.ParseOpCode(tt.arg)
 
 			require.NoError(t, err)
 			require.Equal(t, tt.expected, cmd)
@@ -47,28 +47,28 @@ func TestParseCommand_Regular(t *testing.T) {
 func TestParseCommand_CaseInsensitive(t *testing.T) {
 	t.Parallel()
 
-	cmd, err := models.ParseCommand("gEt")
+	cmd, err := domain.ParseOpCode("gEt")
 
 	require.NoError(t, err)
-	require.Equal(t, models.CommandGet, cmd)
+	require.Equal(t, domain.OpGet, cmd)
 }
 
 func TestParseCommand_Invalid(t *testing.T) {
 	t.Parallel()
 
-	cmd, err := models.ParseCommand("UNKNOWN")
+	cmd, err := domain.ParseOpCode("UNKNOWN")
 
 	require.Error(t, err)
-	require.Equal(t, models.CommandUnknown, cmd)
-	require.Equal(t, `invalid command "UNKNOWN"`, err.Error())
+	require.Equal(t, domain.OpUnknown, cmd)
+	require.Equal(t, `unsupported operation: "UNKNOWN"`, err.Error())
 }
 
 func TestParseCommand_Empty(t *testing.T) {
 	t.Parallel()
 
-	cmd, err := models.ParseCommand("abracadabra")
+	cmd, err := domain.ParseOpCode("abracadabra")
 
 	require.Error(t, err)
-	require.Equal(t, models.CommandUnknown, cmd)
-	require.Equal(t, `invalid command "abracadabra"`, err.Error())
+	require.Equal(t, domain.OpUnknown, cmd)
+	require.Equal(t, `unsupported operation: "abracadabra"`, err.Error())
 }

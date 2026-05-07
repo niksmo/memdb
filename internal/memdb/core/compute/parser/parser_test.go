@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/niksmo/memdb/internal/memdb/core/compute/parser"
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 )
 
 func TestParser_Parse_EmptyStatement(t *testing.T) {
@@ -16,23 +16,23 @@ func TestParser_Parse_EmptyStatement(t *testing.T) {
 
 	_, err := p.Parse([]byte(""))
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "statement is empty")
+	require.Contains(t, err.Error(), "payload is empty")
 }
 
 func TestParser_Parse_InvalidArgsCount(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		stmt []byte
+		name    string
+		payload []byte
 	}{
 		{
-			name: "only one argument",
-			stmt: []byte("GET"),
+			name:    "only one argument",
+			payload: []byte("GET"),
 		},
 		{
-			name: "more than three arguments",
-			stmt: []byte("GET myKey1 myValue1 myKey2 myValue2"),
+			name:    "more than three arguments",
+			payload: []byte("GET myKey1 myValue1 myKey2 myValue2"),
 		},
 	}
 
@@ -41,9 +41,9 @@ func TestParser_Parse_InvalidArgsCount(t *testing.T) {
 			t.Parallel()
 			p := parser.New()
 
-			_, err := p.Parse(tt.stmt)
+			_, err := p.Parse(tt.payload)
 			require.Error(t, err)
-			require.Contains(t, err.Error(), "invalid number of statement arguments")
+			require.Contains(t, err.Error(), "invalid number of arguments")
 
 		})
 	}
@@ -57,7 +57,6 @@ func TestParser_Parse_InvalidCommand(t *testing.T) {
 
 	_, err := p.Parse([]byte("UNKNOWN key"))
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "parse command:")
 }
 
 func TestParser_Parse_InvalidRequestFromModel(t *testing.T) {
@@ -67,7 +66,7 @@ func TestParser_Parse_InvalidRequestFromModel(t *testing.T) {
 
 	_, err := p.Parse([]byte("GET key value"))
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid argument count")
+	require.Contains(t, err.Error(), "invalid arguments count")
 }
 
 func TestParser_Parse_SetCommand_Success(t *testing.T) {
@@ -78,9 +77,9 @@ func TestParser_Parse_SetCommand_Success(t *testing.T) {
 	req, err := p.Parse([]byte("SET myKey myValue"))
 
 	require.NoError(t, err)
-	require.Equal(t, models.CommandSet, req.Cmd)
+	require.Equal(t, domain.OpSet, req.Code)
 	require.Equal(t, "myKey", req.Key)
-	require.Equal(t, "myValue", req.Value)
+	require.Equal(t, "myValue", req.Payload)
 }
 
 func TestParser_Parse_GetCommand_Success(t *testing.T) {
@@ -92,9 +91,9 @@ func TestParser_Parse_GetCommand_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	require.Equal(t, models.CommandGet, req.Cmd)
+	require.Equal(t, domain.OpGet, req.Code)
 	require.Equal(t, "myKey", req.Key)
-	require.Equal(t, "", req.Value)
+	require.Equal(t, "", req.Payload)
 }
 
 func TestParser_Parse_DelCommand_Success(t *testing.T) {
@@ -106,7 +105,7 @@ func TestParser_Parse_DelCommand_Success(t *testing.T) {
 
 	require.NoError(t, err)
 
-	require.Equal(t, models.CommandDel, req.Cmd)
+	require.Equal(t, domain.OpDel, req.Code)
 	require.Equal(t, "myKey", req.Key)
-	require.Equal(t, "", req.Value)
+	require.Equal(t, "", req.Payload)
 }

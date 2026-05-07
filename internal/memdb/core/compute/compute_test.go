@@ -8,19 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/niksmo/memdb/internal/memdb/core/compute"
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 )
 
 type parserMock struct {
-	parseFn func(stmt []byte) (models.Request, error)
+	parseFn func(payload []byte) (domain.Operation, error)
 
 	called bool
 }
 
-func (m *parserMock) Parse(stmt []byte) (models.Request, error) {
+func (m *parserMock) Parse(payload []byte) (domain.Operation, error) {
 	m.called = true
 
-	return m.parseFn(stmt)
+	return m.parseFn(payload)
 }
 
 func TestCompute_Do_ContextCanceled(t *testing.T) {
@@ -44,8 +44,8 @@ func TestCompute_Do_ParserError(t *testing.T) {
 	t.Parallel()
 
 	mock := &parserMock{
-		parseFn: func(stmt []byte) (models.Request, error) {
-			return models.Request{}, assert.AnError
+		parseFn: func(payload []byte) (domain.Operation, error) {
+			return domain.Operation{}, assert.AnError
 		},
 	}
 
@@ -59,25 +59,25 @@ func TestCompute_Do_ParserError(t *testing.T) {
 }
 
 func TestCompute_Do_Success(t *testing.T) {
-	expected := models.Request{
-		Cmd:   models.CommandGet,
-		Key:   "key",
-		Value: "value",
+	expected := domain.Operation{
+		Code:    domain.OpGet,
+		Key:     "key",
+		Payload: "value",
 	}
 
 	mock := &parserMock{
-		parseFn: func(stmt []byte) (models.Request, error) {
+		parseFn: func(payload []byte) (domain.Operation, error) {
 			return expected, nil
 		},
 	}
 
 	c := compute.New(mock)
 
-	stmt := []byte("GET key")
-	req, err := c.Do(context.Background(), stmt)
+	payload := []byte("GET key")
+	operation, err := c.Do(context.Background(), payload)
 
 	require.NoError(t, err)
-	require.Equal(t, expected, req)
+	require.Equal(t, expected, operation)
 
 	require.True(t, mock.called)
 }

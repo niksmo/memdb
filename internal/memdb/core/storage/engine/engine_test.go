@@ -13,9 +13,9 @@ func TestEngine_SetAndGet(t *testing.T) {
 
 	e.Set("key1", "value1")
 
-	val, err := e.Get("key1")
+	data, err := e.Get("key1")
 	require.NoError(t, err)
-	require.Equal(t, "value1", val)
+	require.Equal(t, "value1", data)
 }
 
 func TestEngine_Get_NotFound(t *testing.T) {
@@ -23,9 +23,9 @@ func TestEngine_Get_NotFound(t *testing.T) {
 
 	e := New()
 
-	val, err := e.Get("missing")
+	data, err := e.Get("missing")
 	require.ErrorIs(t, err, NotFound)
-	require.Empty(t, val)
+	require.Empty(t, data)
 }
 
 func TestEngine_Set_Overwrite(t *testing.T) {
@@ -36,9 +36,9 @@ func TestEngine_Set_Overwrite(t *testing.T) {
 	e.Set("key1", "value1")
 	e.Set("key1", "value2")
 
-	val, err := e.Get("key1")
+	data, err := e.Get("key1")
 	require.NoError(t, err)
-	require.Equal(t, "value2", val)
+	require.Equal(t, "value2", data)
 }
 
 func TestEngine_Del_Success(t *testing.T) {
@@ -74,7 +74,7 @@ func TestEngine_StateIsolation(t *testing.T) {
 
 	e.Del("k1")
 
-	val, err := e.Get("k2")
+	data, err := e.Get("k2")
 	require.NoError(t, err)
-	require.Equal(t, "v2", val)
+	require.Equal(t, "v2", data)
 }

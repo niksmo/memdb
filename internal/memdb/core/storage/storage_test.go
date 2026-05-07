@@ -6,17 +6,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 	"github.com/niksmo/memdb/internal/memdb/core/storage/engine"
 )
 
 type mockEngine struct {
-	setFn func(key, val string)
+	setFn func(key, payload string)
 	getFn func(key string) (string, error)
 	delFn func(key string)
 }
 
-func (m *mockEngine) Set(key, val string) { m.setFn(key, val) }
+func (m *mockEngine) Set(key, payload string) { m.setFn(key, payload) }
 
 func (m *mockEngine) Get(key string) (string, error) { return m.getFn(key) }
 
@@ -28,14 +28,14 @@ func TestStorage_Process_Set(t *testing.T) {
 	e := &mockEngine{
 		setFn: func(key, val string) {},
 	}
-	s := New(e)
-	req := models.Request{
-		Cmd:   models.CommandSet,
-		Key:   "k1",
-		Value: "v1",
+	s := New(Options{Engine: e})
+	op := domain.Operation{
+		Code:    domain.OpSet,
+		Key:     "k1",
+		Payload: "v1",
 	}
 
-	resp, err := s.Process(context.Background(), req)
+	resp, err := s.Process(context.Background(), op)
 	require.NoError(t, err)
 	require.Equal(t, []byte("OK"), resp)
 }
@@ -52,16 +52,16 @@ func TestStorage_Process_Get(t *testing.T) {
 		},
 	}
 
-	s := New(e)
-	req := models.Request{
-		Cmd:   models.CommandGet,
-		Key:   "k1",
-		Value: "",
+	s := New(Options{Engine: e})
+	op := domain.Operation{
+		Code:    domain.OpGet,
+		Key:     "k1",
+		Payload: "",
 	}
 
-	resp, err := s.Process(context.Background(), req)
+	data, err := s.Process(context.Background(), op)
 	require.NoError(t, err)
-	require.Equal(t, []byte("v1"), resp)
+	require.Equal(t, []byte("v1"), data)
 }
 
 func TestStorage_Process_Get_NotFound(t *testing.T) {
@@ -73,14 +73,14 @@ func TestStorage_Process_Get_NotFound(t *testing.T) {
 		},
 	}
 
-	s := New(e)
+	s := New(Options{Engine: e})
 
-	req := models.Request{
-		Cmd: models.CommandGet,
-		Key: "missing",
+	op := domain.Operation{
+		Code: domain.OpGet,
+		Key:  "missing",
 	}
 
-	_, err := s.Process(context.Background(), req)
+	_, err := s.Process(context.Background(), op)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not found")
 }
@@ -92,16 +92,16 @@ func TestStorage_Process_Del(t *testing.T) {
 		delFn: func(key string) {},
 	}
 
-	s := New(e)
+	s := New(Options{Engine: e})
 
-	req := models.Request{
-		Cmd: models.CommandDel,
-		Key: "k1",
+	op := domain.Operation{
+		Code: domain.OpDel,
+		Key:  "k1",
 	}
 
-	resp, err := s.Process(context.Background(), req)
+	data, err := s.Process(context.Background(), op)
 	require.NoError(t, err)
-	require.Equal(t, []byte("OK"), resp)
+	require.Equal(t, []byte("OK"), data)
 }
 
 func TestStorage_Process_Del_NotFound(t *testing.T) {
@@ -111,13 +111,13 @@ func TestStorage_Process_Del_NotFound(t *testing.T) {
 		delFn: func(key string) {},
 	}
 
-	s := New(e)
+	s := New(Options{Engine: e})
 
-	req := models.Request{
-		Cmd: models.CommandDel,
-		Key: "missing",
+	op := domain.Operation{
+		Code: domain.OpDel,
+		Key:  "missing",
 	}
-	_, err := s.Process(context.Background(), req)
+	_, err := s.Process(context.Background(), op)
 	require.NoError(t, err)
 }
 
@@ -126,27 +126,28 @@ func TestStorage_Process_UnknownCommand(t *testing.T) {
 
 	e := &mockEngine{}
 
-	s := New(e)
+	s := New(Options{Engine: e})
 
-	req := models.Request{}
+	op := domain.Operation{}
 
-	_, err := s.Process(context.Background(), req)
+	_, err := s.Process(context.Background(), op)
 	require.Error(t, err)
 }
 
 func TestStorage_Process_CtxCanceled(t *testing.T) {
 	t.Parallel()
 
-	e := &mockEngine{}
+	e := &mockEngine{
+		setFn: func(key, val string) {},
+	}
 
-	s := New(e)
+	s := New(Options{Engine: e})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	req := models.Request{}
+	op := domain.Operation{Code: domain.OpSet}
 
-	_, err := s.Process(ctx, req)
-	require.Error(t, err)
-	require.ErrorIs(t, err, context.Canceled)
+	_, err := s.Process(ctx, op)
+	require.NoError(t, err) // context errors are ignored by the storage implementation.
 }

@@ -12,8 +12,9 @@ func TestNewApp(t *testing.T) {
 	t.Parallel()
 
 	require.NotPanics(t, func() {
-		var buf bytes.Buffer
-		app := NewApp(&buf, os.Args[:1])
+		ctx := t.Context()
+		wr := new(bytes.Buffer)
+		app := NewApp(ctx, wr, os.Args[:1])
 		require.NotNil(t, app)
 	})
 }

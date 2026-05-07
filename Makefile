@@ -39,7 +39,7 @@ clean:
 
 .PHONY: test
 test:
-	go test -count=1 -v ./...
+	go test -race -count=1 -v ./...
 
 .PHONY: .run-memdb
 .run-memdb:
