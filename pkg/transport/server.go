@@ -31,14 +31,14 @@ type Server struct {
 	connCount atomic.Int32
 }
 
-func NewListener(l *slog.Logger, e Handler, c Config) (*Server, error) {
+func NewListener(logger *slog.Logger, e Handler, c Config) (*Server, error) {
 	lis, err := net.Listen("tcp", c.Address)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &Server{
-		logger:  l,
+		logger:  logger.With(slog.String("component", "net_listener")),
 		cfg:     c,
 		handler: e,
 		lis:     lis,
@@ -52,13 +52,30 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) Listen(ctx context.Context) error {
-	errCh := s.listen(ctx)
+	for {
+		conn, err := s.lis.Accept()
+		if errors.Is(err, net.ErrClosed) { // memdb is closed
+			return nil
+		}
 
-	select {
-	case <-ctx.Done():
-		return context.Cause(ctx)
-	case err := <-errCh:
-		return err
+		if nerr, ok := errors.AsType[net.Error](err); ok {
+			if nerr.Temporary() {
+				s.logger.Warn("accept connection", slog.Any("error", nerr))
+				continue
+			}
+
+			if nerr.Timeout() {
+				s.logger.Warn("accept connection", slog.Any("error", nerr))
+				continue
+			}
+		}
+
+		if err != nil {
+			return err
+		}
+
+		s.connCount.Add(1)
+		go s.handleRawConn(ctx, conn)
 	}
 }
 

@@ -2,12 +2,21 @@
 # 2) Change values to preferred settings.
 
 engine:
-  type: "in_memory" # No impact on application behavior.
+  type: "in_memory"               # Only supported type in current version.
+
 network:
-  address: "127.0.0.1:8000"
-  max_connections: 100
-  max_message_size: 4096
-  idle_timeout: 5m
+  address: "127.0.0.1:8000"       # (Default: "127.0.0.1:8000")
+  max_connections: 100            # (Default: 100)
+  max_message_size: 4096          # (Default: 4096)
+  idle_timeout: 5m                # (Default: 5m)
+
 logging:
-  level: "info"
-  output: "" # Use a blank value for STDOUT, or provide the absolute file path.
+  level: "info"                   # (Default: "info")
+  output: ""                      # Blank for STDOUT, or provide absolute file path (Default: "")
+
+wal:
+  enabled: false                  # Set to true for data persistence (Default: false)
+  flushing_batch_size: 100        # (Min: 1, Default: 100)
+  flushing_batch_timeout: 10ms    # (Min: 1ms, Default: 10ms)
+  max_segment_size: 10485760      # (Min: 256 bytes, Default: 10485760)
+  data_directory: "data/wal"      # Path relative to binary or absolute (Default: "data/wal")

@@ -3,11 +3,11 @@ package compute
 import (
 	"context"
 
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 )
 
 type Parser interface {
-	Parse(stmt []byte) (models.Request, error)
+	Parse(payload []byte) (domain.Operation, error)
 }
 
 type Compute struct {
@@ -18,10 +18,10 @@ func New(p Parser) *Compute {
 	return &Compute{p}
 }
 
-func (c *Compute) Do(ctx context.Context, stmt []byte) (models.Request, error) {
+func (c *Compute) Do(ctx context.Context, payload []byte) (domain.Operation, error) {
 	if err := ctx.Err(); err != nil {
-		return models.Request{}, err
+		return domain.Operation{}, err
 	}
 
-	return c.p.Parse(stmt)
+	return c.p.Parse(payload)
 }

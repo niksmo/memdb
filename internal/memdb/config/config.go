@@ -12,6 +12,7 @@ type rawConfig struct {
 	Engine  *rawEngine  `mapstructure:"engine"`
 	Network *rawNetwork `mapstructure:"network"`
 	Logging *rawLogging `mapstructure:"logging"`
+	WAL     *rawWAL     `mapstructure:"wal"`
 }
 
 func toConfig(raw rawConfig) Config {
@@ -19,6 +20,7 @@ func toConfig(raw rawConfig) Config {
 		Engine:  toEngine(raw.Engine),
 		Network: toNetwork(raw.Network),
 		Logging: toLogging(raw.Logging),
+		WAL:     toWAL(raw.WAL),
 	}
 }
 
@@ -27,6 +29,7 @@ type Config struct {
 	Engine  engine  `yaml:"engine"`
 	Network network `yaml:"network"`
 	Logging logging `yaml:"logging"`
+	WAL     wal     `yaml:"wal"`
 }
 
 func defaultConfig() Config {
@@ -34,6 +37,7 @@ func defaultConfig() Config {
 		Engine:  defaultEngine(),
 		Network: defaultNetwork(),
 		Logging: defaultLogging(),
+		WAL:     defaultWAL(),
 	}
 }
 

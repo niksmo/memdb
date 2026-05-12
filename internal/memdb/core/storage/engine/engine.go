@@ -10,39 +10,39 @@ var (
 )
 
 type Engine struct {
-	mu   sync.RWMutex
-	data map[string]string
+	mu    sync.RWMutex
+	vault map[string]string
 }
 
 func New() *Engine {
 	return &Engine{
-		data: make(map[string]string),
+		vault: make(map[string]string),
 	}
 }
 
-func (e *Engine) Set(key string, value string) {
+func (e *Engine) Set(key string, payload string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.data[key] = value
+	e.vault[key] = payload
 }
 
 func (e *Engine) Get(key string) (string, error) {
 	e.mu.RLock()
-	value, ok := e.data[key]
+	data, ok := e.vault[key]
 	e.mu.RUnlock()
 
 	if !ok {
 		return "", NotFound
 	}
-	return value, nil
+	return data, nil
 }
 
 func (e *Engine) Del(key string) {
 	e.mu.Lock()
-	_, ok := e.data[key]
+	_, ok := e.vault[key]
 	e.mu.Unlock()
 
 	if ok {
-		delete(e.data, key)
+		delete(e.vault, key)
 	}
 }

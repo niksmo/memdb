@@ -3,36 +3,36 @@ package core
 import (
 	"context"
 
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 )
 
 type Compute interface {
-	Do(ctx context.Context, buf []byte) (models.Request, error)
+	Do(ctx context.Context, payload []byte) (domain.Operation, error)
 }
 
 type Storage interface {
-	Process(ctx context.Context, req models.Request) ([]byte, error)
+	Process(ctx context.Context, op domain.Operation) ([]byte, error)
 }
 
 type Pipeline struct {
-	c Compute
-	s Storage
+	compute Compute
+	storage Storage
 }
 
 func NewPipeline(c Compute, s Storage) *Pipeline {
 	return &Pipeline{c, s}
 }
 
-func (p *Pipeline) Handle(ctx context.Context, buf []byte) ([]byte, error) {
-	req, err := p.c.Do(ctx, buf)
+func (p *Pipeline) Handle(ctx context.Context, payload []byte) ([]byte, error) {
+	operation, err := p.compute.Do(ctx, payload)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := p.s.Process(ctx, req)
+	data, err := p.storage.Process(ctx, operation)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp, nil
+	return data, nil
 }

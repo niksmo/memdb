@@ -33,7 +33,13 @@ network:
   idle_timeout: 30s
 logging:
   level: "warn"
-  output: "/log/output.log"`)
+  output: "/log/output.log"
+wal:
+  enabled: true
+  flushing_batch_size: 50
+  flushing_batch_timeout: 5ms
+  max_segment_size: 1048576
+  data_directory: "/etc/memdb/data/wal"`)
 
 	mock := &mockYamlProvider{payload}
 
@@ -48,6 +54,13 @@ logging:
 		Logging: logging{
 			Level:  "warn",
 			Output: "/log/output.log",
+		},
+		WAL: wal{
+			Enabled:              true,
+			FlushingBatchSize:    50,
+			FlushingBatchTimeout: 5 * time.Millisecond,
+			MaxSegmentSize:       1048576,
+			DataDirectory:        "/etc/memdb/data/wal",
 		},
 	}
 
@@ -69,7 +82,12 @@ max_message_size: 1024
 idle_timeout: 30s
 logging:
   level: "warn"
-  out: "/log/output.log"`)
+  out: "/log/output.log"
+wal:
+  on: false
+  flushing_batch_len: 1000
+  flushing_batch_tick: 150ms
+  data_directory: "/etc/memdb/data/wal"`)
 
 	mock := &mockYamlProvider{payload}
 
@@ -86,6 +104,13 @@ logging:
 		Logging: logging{
 			Level:  "warn",
 			Output: "", // default
+		},
+		WAL: wal{
+			Enabled:              false,                 // default
+			FlushingBatchSize:    100,                   // default
+			FlushingBatchTimeout: 10 * time.Millisecond, //default
+			MaxSegmentSize:       10485760,              // default
+			DataDirectory:        "/etc/memdb/data/wal",
 		},
 	}
 
@@ -110,7 +135,9 @@ max_connections: 50
   idle_timeout: 30s
       logging: "debug"
   level: "warn"
-  out: "/log/output.log"`)
+  out: "/log/output.log"
+write_ahead_log:
+  enabled: true`)
 
 	mock := &mockYamlProvider{payload}
 
@@ -118,6 +145,7 @@ max_connections: 50
 		Engine:  defaultEngine(),
 		Network: defaultNetwork(),
 		Logging: defaultLogging(),
+		WAL:     defaultWAL(),
 	}
 
 	observer := new(bytes.Buffer)
@@ -142,7 +170,13 @@ network:
   idle_timeout: 30s
 logging:
   level: "warn"
-  output: "/log/output.log"`)
+  output: "/log/output.log"
+wal:
+  enabled: true
+  flushing_batch_size: 50
+  flushing_batch_timeout: 5ms
+  max_segment_size: 1048576
+  data_directory: "/etc/memdb/data/wal"`)
 
 	rootPath := t.TempDir()
 	f, err := os.Create(filepath.Join(rootPath, defaultPath))
@@ -175,7 +209,13 @@ network:
   idle_timeout: 30s
 logging:
   level: "warn"
-  output: "/log/output.log"`)
+  output: "/log/output.log"
+wal:
+  enabled: true
+  flushing_batch_size: 50
+  flushing_batch_timeout: 5ms
+  max_segment_size: 1048576
+  data_directory: "/etc/memdb/data/wal"`)
 
 	rootPath := t.TempDir()
 	configPath := filepath.Join(rootPath, "abracadabra.yml")

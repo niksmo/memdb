@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 )
 
 const (
-	setCmdArgsLen = 2
-	getCmdArgsLen = 1
-	delCmdArgsLen = 1
+	setOpArgsLen = 2
+	getOpArgsLen = 1
+	delOpArgsLen = 1
 
 	minArgs = 2
 	maxArgs = 3
 
-	keyIdx   = 0
-	valueIdx = 1
+	keyIdx     = 0
+	payloadIdx = 1
 )
 
 type Parser struct{}
@@ -26,69 +26,69 @@ func New() *Parser {
 	return &Parser{}
 }
 
-func (p *Parser) Parse(stmt []byte) (models.Request, error) {
-	if len(stmt) == 0 {
-		return models.Request{}, errors.New("statement is empty")
+func (p *Parser) Parse(payload []byte) (domain.Operation, error) {
+	if len(payload) == 0 {
+		return domain.Operation{}, errors.New("payload is empty")
 	}
 
-	args := strings.Fields(string(stmt))
+	args := strings.Fields(string(payload))
 
 	n := len(args)
 	if n < minArgs || n > maxArgs {
-		return models.Request{}, errors.New("invalid number of statement arguments")
+		return domain.Operation{}, errors.New("invalid number of arguments")
 	}
 
-	cmd, err := models.ParseCommand(args[0])
+	opCode, err := domain.ParseOpCode(args[0])
 	if err != nil {
-		return models.Request{}, fmt.Errorf("parse command: %w", err)
+		return domain.Operation{}, err
 	}
 
-	cmdArgs := args[1:]
+	operationArgs := args[1:]
 
-	if err = p.validate(cmd, cmdArgs); err != nil {
-		return models.Request{}, err
+	if err = p.validate(opCode, operationArgs); err != nil {
+		return domain.Operation{}, err
 	}
 
-	return p.buildRequest(cmd, cmdArgs)
+	return p.buildOperation(opCode, operationArgs)
 }
 
-func (p *Parser) validate(cmd models.Command, cmdArgs []string) error {
-	const msgFormat = "invalid argument count, expected %d got %d"
+func (p *Parser) validate(opCode domain.OpCode, operationArgs []string) error {
+	const msgFormat = "invalid arguments count, expected %d got %d"
 
-	n := len(cmdArgs)
-	switch cmd {
-	case models.CommandSet:
-		if n != setCmdArgsLen {
-			return fmt.Errorf(msgFormat, setCmdArgsLen, n)
+	argsLen := len(operationArgs)
+	switch opCode {
+	case domain.OpSet:
+		if argsLen != setOpArgsLen {
+			return fmt.Errorf(msgFormat, setOpArgsLen, argsLen)
 		}
-	case models.CommandGet:
-		if n != getCmdArgsLen {
-			return fmt.Errorf(msgFormat, getCmdArgsLen, n)
+	case domain.OpGet:
+		if argsLen != getOpArgsLen {
+			return fmt.Errorf(msgFormat, getOpArgsLen, argsLen)
 		}
-	case models.CommandDel:
-		if n != delCmdArgsLen {
-			return fmt.Errorf(msgFormat, delCmdArgsLen, n)
+	case domain.OpDel:
+		if argsLen != delOpArgsLen {
+			return fmt.Errorf(msgFormat, delOpArgsLen, argsLen)
 		}
 	default:
-		return errors.New("unexpected command")
+		return errors.New("unexpected operation code")
 	}
 
 	return nil
 }
 
-func (p *Parser) buildRequest(cmd models.Command, cmdArgs []string) (models.Request, error) {
+func (p *Parser) buildOperation(opCode domain.OpCode, cmdArgs []string) (domain.Operation, error) {
 	key := cmdArgs[keyIdx]
 
-	var value string
-	if cmd == models.CommandSet {
-		value = cmdArgs[valueIdx]
+	var payload string
+	if opCode == domain.OpSet {
+		payload = cmdArgs[payloadIdx]
 	}
 
-	req := models.Request{
-		Cmd:   cmd,
-		Key:   key,
-		Value: value,
+	operation := domain.Operation{
+		Code:    opCode,
+		Key:     key,
+		Payload: payload,
 	}
 
-	return req, nil
+	return operation, nil
 }

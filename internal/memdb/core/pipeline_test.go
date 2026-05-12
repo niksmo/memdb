@@ -8,50 +8,50 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/niksmo/memdb/internal/memdb/core/models"
+	"github.com/niksmo/memdb/internal/memdb/core/domain"
 )
 
 type mockCompute struct {
-	doFn func(ctx context.Context, stmt []byte) (models.Request, error)
+	doFn func(ctx context.Context, payload []byte) (domain.Operation, error)
 }
 
-func (m *mockCompute) Do(ctx context.Context, stmt []byte) (models.Request, error) {
-	return m.doFn(ctx, stmt)
+func (m *mockCompute) Do(ctx context.Context, payload []byte) (domain.Operation, error) {
+	return m.doFn(ctx, payload)
 }
 
 type mockStorage struct {
-	processFn func(ctx context.Context, req models.Request) ([]byte, error)
+	processFn func(ctx context.Context, op domain.Operation) ([]byte, error)
 }
 
-func (m *mockStorage) Process(ctx context.Context, req models.Request) ([]byte, error) {
-	return m.processFn(ctx, req)
+func (m *mockStorage) Process(ctx context.Context, operation domain.Operation) ([]byte, error) {
+	return m.processFn(ctx, operation)
 }
 
 func TestPipeline_Exec_Success(t *testing.T) {
 	t.Parallel()
 
-	req := models.Request{
-		Cmd:   models.CommandSet,
-		Key:   "k1",
-		Value: "v1",
+	operation := domain.Operation{
+		Code:    domain.OpSet,
+		Key:     "k1",
+		Payload: "v1",
 	}
 
 	c := &mockCompute{
-		doFn: func(ctx context.Context, stmt []byte) (models.Request, error) {
-			return req, nil
+		doFn: func(ctx context.Context, payload []byte) (domain.Operation, error) {
+			return operation, nil
 		},
 	}
 
 	s := &mockStorage{
-		processFn: func(ctx context.Context, r models.Request) ([]byte, error) {
+		processFn: func(ctx context.Context, r domain.Operation) ([]byte, error) {
 			return []byte("OK"), nil
 		},
 	}
 
 	p := NewPipeline(c, s)
-	resp, err := p.Handle(context.Background(), []byte("SET k1 v1"))
+	data, err := p.Handle(context.Background(), []byte("SET k1 v1"))
 	require.NoError(t, err)
-	require.Equal(t, []byte("OK"), resp)
+	require.Equal(t, []byte("OK"), data)
 }
 
 func TestPipeline_Exec_ComputeError(t *testing.T) {
@@ -60,8 +60,8 @@ func TestPipeline_Exec_ComputeError(t *testing.T) {
 	computeErr := errors.New("compute failed")
 
 	c := &mockCompute{
-		doFn: func(ctx context.Context, stmt []byte) (models.Request, error) {
-			return models.Request{}, computeErr
+		doFn: func(ctx context.Context, payload []byte) (domain.Operation, error) {
+			return domain.Operation{}, computeErr
 		},
 	}
 	s := &mockStorage{}
@@ -74,21 +74,21 @@ func TestPipeline_Exec_ComputeError(t *testing.T) {
 func TestPipeline_Exec_StorageError(t *testing.T) {
 	t.Parallel()
 
-	req := models.Request{
-		Cmd:   models.CommandSet,
-		Key:   "k1",
-		Value: "v1",
+	operation := domain.Operation{
+		Code:    domain.OpSet,
+		Key:     "k1",
+		Payload: "v1",
 	}
 
 	storageErr := errors.New("storage failed")
 
 	c := &mockCompute{
-		doFn: func(ctx context.Context, stmt []byte) (models.Request, error) {
-			return req, nil
+		doFn: func(ctx context.Context, payload []byte) (domain.Operation, error) {
+			return operation, nil
 		},
 	}
 	s := &mockStorage{
-		processFn: func(ctx context.Context, r models.Request) ([]byte, error) {
+		processFn: func(ctx context.Context, r domain.Operation) ([]byte, error) {
 			return nil, storageErr
 		},
 	}
@@ -99,15 +99,15 @@ func TestPipeline_Exec_StorageError(t *testing.T) {
 }
 
 func TestPipeline_Exec_StorageUnknownCommand(t *testing.T) {
-	req := models.Request{}
+	operation := domain.Operation{}
 
 	c := &mockCompute{
-		doFn: func(ctx context.Context, stmt []byte) (models.Request, error) {
-			return req, nil
+		doFn: func(ctx context.Context, payload []byte) (domain.Operation, error) {
+			return operation, nil
 		},
 	}
 	s := &mockStorage{
-		processFn: func(ctx context.Context, r models.Request) ([]byte, error) {
+		processFn: func(ctx context.Context, r domain.Operation) ([]byte, error) {
 			return nil, assert.AnError
 		},
 	}

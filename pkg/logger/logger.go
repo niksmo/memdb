@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 )
 
 func New(wr io.Writer, level string) *slog.Logger {
@@ -18,6 +19,12 @@ func New(wr io.Writer, level string) *slog.Logger {
 	l := slog.New(handler)
 
 	return l
+}
+
+func NewObservable(level string) (logger *slog.Logger, observer *strings.Builder) {
+	observer = new(strings.Builder)
+
+	return New(observer, level), observer
 }
 
 func parseStringLevel(wr io.Writer, level string) slog.Level {
